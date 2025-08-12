@@ -21,7 +21,7 @@ class DoubleLinkedList {
     Object* tail{nullptr};
     size_t length{0};
 
-    Object* _at(int index) {
+    Object* _at(int index) const {
         if(index < 0) index = static_cast<int>(length) + index;
         if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
         Object* ptr;
@@ -81,15 +81,16 @@ class DoubleLinkedList {
         return ptr->data;
     }
 
+
 public:
     DoubleLinkedList() { }
     DoubleLinkedList(const T* ar, size_t len) {
-        for(int i = 0; i < len; i++) this->push_back(ar[i]);
+        for(size_t i = 0; i < len; i++) this->push_back(ar[i]);
     }
     DoubleLinkedList(const DoubleLinkedList<T>& right) {
         for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
     }
-    DoubleLinkedList(DoubleLinkedList<T>&& right) {
+    DoubleLinkedList(DoubleLinkedList<T>&& right) noexcept {
         this->head = right.head;
         this->tail = right.tail;
         this->length = right.length;
@@ -154,7 +155,7 @@ public:
         if(!head) throw EmptyError();
         T res = std::move(head->data);
         if(head == tail) {
-            delete tail;
+            delete head;
             head = tail = nullptr;
         }
         else {
@@ -198,7 +199,7 @@ public:
         for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
         return *this;
     }
-    DoubleLinkedList<T>& operator=(DoubleLinkedList<T>&& right) {
+    DoubleLinkedList<T>& operator=(DoubleLinkedList<T>&& right) noexcept {
         if(&right == this) return *this;
         this->clear();
         this->length = right.length;

@@ -4,38 +4,81 @@
 #include "Exception.cpp"
 
 
-#define SKIP_STEP 4
-
-
 namespace siilib {
 template <typename T>
-class OneLinkedList {
-public:   
-    class Object {
-    public:
+class OneLinkedList { 
+
+    struct Object {
         T data;
-        std::shared_ptr<Object> next{nullptr};
+        Object* next{nullptr};
 
-        Object(const T& data, std::shared_ptr<Object> next=nullptr) : data(data), next(next) { }
-
-        T& get_data() { return data; } // получение значения поля data
-        std::shared_ptr<Object> get_next() { return next; } // получение значения поля next
+        Object(const T& data) : data(data) { }
+        Object(T&& data) : data(std::move(data)) { }
     };
 
-private:
-    std::shared_ptr<Object> head{nullptr};
-    std::shared_ptr<Object> tail{nullptr};
+    Object* head{nullptr};
+    Object* tail{nullptr};
     size_t length{0};
+
+    Object* _at(int index) const {
+        if(index < 0) index = static_cast<int>(length) + index;
+        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
+        Object* ptr = head;
+        for(int i = 0; i < index; i++) ptr = ptr->next;
+        return ptr;
+    }
+
+    template <typename U>
+    T& _push_back(U&& x) {
+        Object* ptr = new Object(std::forward<U>(x));
+        if(!tail) {
+            head = tail = ptr;
+        }
+        else {
+            tail->next = ptr;
+            tail = ptr;
+        }
+        length++;
+        return tail->data;
+    }
+
+    template <typename U>
+    T& _push_front(U&& x) {
+        Object* ptr = new Object(std::forward<U>(x));
+        if(!head) {
+            head = tail = ptr;
+        }
+        else {
+            ptr->next = head;
+            head = ptr;
+        }
+        length++;
+        return head->data;
+    }
+
+    template <typename U>
+    T& _insert(int index, U&& x) {
+        if(index == 0) return _push_front(std::forward<U>(x));
+        if(index == length) return _push_back(std::forward<U>(x));
+        Object* left = _at(index - 1);
+        Object* right = left->next;
+        Object* ptr = new Object(std::forward<U>(x));
+        left->next = ptr;
+        ptr->next = right;
+        length++;
+        return ptr->data;
+    }
+
 
 public:
     OneLinkedList() { }
-    OneLinkedList(T* ar, size_t len) {
-        for(int i = 0; i < len; i++) this->push_back(ar[i]);
+    OneLinkedList(const T* ar, size_t len) {
+        for(size_t i = 0; i < len; i++) this->push_back(ar[i]);
     }
     OneLinkedList(const OneLinkedList<T>& right) {
-        for(std::shared_ptr<Object> ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
+        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
     }
-    OneLinkedList(OneLinkedList<T>&& right) {
+    OneLinkedList(OneLinkedList<T>&& right) noexcept {
         this->head = right.head;
         this->tail = right.tail;
         this->length = right.length;
@@ -46,175 +89,106 @@ public:
         for(const T& x : ar) this->push_back(x);
     }
 
-    void clear() { length = 0; head = tail = nullptr; }
+    ~OneLinkedList() {
+        this->clear();
+    }
+
+
+    void clear() {
+        Object* ptr = head;
+        while(head) {
+            ptr = head;
+            head = head->next;
+            delete ptr;
+        }
+        head = tail = nullptr;
+        length = 0;
+    }
 
     bool is_empty() const { return length == 0; }
-    std::shared_ptr<Object>  get_head() const { 
-        if(length == 0) throw EmptyError();
-        return head; 
-    } 
-    std::shared_ptr<Object>  get_tail() const { 
-        if(length == 0) throw EmptyError();
-        return tail; 
-    }
+
     size_t get_length() const { return length; }
 
-    Object& push_back(const T& x) {
-        if(!head) {
-            tail = head = std::make_shared<Object>(x);
-        }
-        else {
-            tail->next = std::make_shared<Object>(x);
-            tail = tail->next;
-        }
-        length++;
-        return *tail;
+
+    T& push_back(const T& x) {
+        return _push_back(x);
     }
-    Object& push_front(const T& x) {
-        if(!head) {
-            tail = head = std::make_shared<Object>(x);
-        }
-        else {
-            head = std::make_shared<Object>(x, head);
-        }
-        length++;
-        return *head;
+    T& push_back(T&& x) {
+        return _push_back(std::move(x));
     }
-    Object& push_back(T&& x) {
-        if(!head) {
-            tail = head = std::make_shared<Object>(std::move(x));
-        }
-        else {
-            tail->next = std::make_shared<Object>(std::move(x));
-            tail = tail->next;
-        }
-        length++;
-        return *tail;
+
+    T& push_front(const T& x) {
+        return _push_front(x);
     }
-    Object& push_front(T&& x) {
-        if(!head) {
-            tail = head = std::make_shared<Object>(std::move(x));
-        }
-        else {
-            head = std::make_shared<Object>(std::move(x), head);
-        }
-        length++;
-        return *head;
+    T& push_front(T&& x) {
+        return _push_front(std::move(x));
     }
     T pop_back() {
-        if(!head) throw EmptyError();
-        std::shared_ptr<Object> ptr = tail;
-        length--;
+        if(!tail) throw EmptyError();
+        T res = std::move(tail->data);
         if(head == tail) {
+            delete tail;
             head = tail = nullptr;
-            return ptr->data;
         }
-        tail = head;
-        while(tail->next != ptr) tail = tail->next;
-        tail->next = nullptr;
-        return std::move(ptr->data);
+        else {
+            Object* ptr = _at(length-2);
+            ptr->next = nullptr;
+            delete tail;
+            tail = ptr;
+        }
+        length--;
+        return res;
     }
     T pop_front() {
         if(!head) throw EmptyError();
-        std::shared_ptr<Object> ptr = head;
-        length--;
+        T res = std::move(head->data);
         if(head == tail) {
+            delete head;
             head = tail = nullptr;
-            return ptr->data;
-        }
-        head = head->next;
-        return std::move(ptr->data);
-    }
-
-    Object& insert(int index, const T& x) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index > static_cast<int>(length)) throw IndexError();
-        if(index == 0) {
-            head = std::make_shared<Object>(x, head);
-            length++;
-            return *head;
-        }
-        if(index == length) {
-            tail->next = std::make_shared<Object>(x);
-            tail = tail->next;
-            length++;
-            return *tail;
-        }
-        Object* ptr = head.get();
-        for(int i = 0; i < index-1; i++) ptr = ptr->next.get();
-        ptr->next = std::make_shared<Object>(x, ptr->next);
-        if(!ptr->next->next) tail = ptr->next;
-        length++;
-        return *ptr->next;
-    }
-    Object& insert(int index, T&& x) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index > static_cast<int>(length)) throw IndexError();
-        if(index == 0) {
-            head = std::make_shared<Object>(std::move(x), head);
-            length++;
-            return *head;
-        }
-        if(index == length) {
-            tail->next = std::make_shared<Object>(std::move(x));
-            tail = tail->next;
-            length++;
-            return *tail;
-        }
-        Object* ptr = head.get();
-        for(int i = 0; i < index-1; i++) ptr = ptr->next.get();
-        ptr->next = std::make_shared<Object>(std::move(x), ptr->next);
-        if(!ptr->next->next) tail = ptr->next;
-        length++;
-        return *ptr->next;
-    }
-    T remove(int index) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        std::shared_ptr<Object> tmp = head;
-        length--;
-        if(index == 0) {
-            head = head->next;
-            if (!head) tail = nullptr;
-            return tmp->data;
-        }
-        std::shared_ptr<Object> ptr = head;
-        for(int i = 0; i < index-1; i++) ptr = ptr->next;
-        tmp = ptr->next;
-        if(!ptr->next->next) {
-            tail = ptr;
-            ptr->next = nullptr;
         }
         else {
-            ptr->next = ptr->next->next;
+            Object* ptr = head->next;
+            delete head;
+            head = ptr;
         }
-        return std::move(tmp->data);
+        length--;
+        return res;
+    }
+
+    T& insert(int index, const T& x) {
+        return _insert(index, x);
+    }
+    T& insert(int index, T&& x) {
+        return _insert(index, std::move(x));
+    }
+    T erase(int index) {
+        if(index == 0) return pop_front();
+        if(index == length-1) return pop_back();
+        Object* ptr = _at(index-1);
+        Object* tmp = ptr->next;
+        T res = std::move(tmp->data);
+        ptr->next = ptr->next->next;
+        delete tmp;
+        length--;
+        return res;
     }
 
     T& operator[](int index) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        Object* ptr = head.get();
-        for(int i = 0; i < index; i++) ptr = ptr->next.get();
-        return ptr->data;
+        return _at(index)->data;
     }
     const T& operator[](int index) const {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        Object* ptr = head.get();
-        for(int i = 0; i < index; i++) ptr = ptr->next.get();
-        return ptr->data;
+        return _at(index)->data;
     }
 
     OneLinkedList<T>& operator=(const OneLinkedList<T>& right) {
         if(&right == this) return *this;
-        this->length = 0;
-        this->head = this->tail = nullptr;
-        for(Object* ptr = right.head.get(); ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
+        this->clear();
+        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
         return *this;
     }
-    OneLinkedList<T>& operator=(OneLinkedList<T>&& right) {
+    OneLinkedList<T>& operator=(OneLinkedList<T>&& right) noexcept {
         if(&right == this) return *this;
+        this->clear();
         this->length = right.length;
         this->head = right.head;
         this->tail = right.tail;
@@ -222,16 +196,23 @@ public:
         right.length = 0;
         return *this;
     }
+    OneLinkedList<T>& operator=(std::initializer_list<T> ar) {
+        this->clear();
+        for(const T& x : ar) this->push_back(x);
+        return *this;
+    }
     OneLinkedList<T>& operator+=(const OneLinkedList<T>& right) {
-        for(Object* ptr = right.head.get(); ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
+        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
         return *this;
     }
     OneLinkedList<T>& operator+=(OneLinkedList<T>&& right) {
+        if(&right == this) return *this;
+        if (!right.head) return *this;
         if (!head) {
             head = right.head;
         }
         else {
-            tail->next = right.head;  
+            tail->next = right.head;
         }
         tail = right.tail;
         length += right.length;
@@ -264,21 +245,6 @@ int main() {
 
     int var = lst_int[1]; // чтение данных из второго элемента списка
     lst_int[2] = -5; // запись данных в третий элемент списка
-
-    // перебор первого списка
-    std::shared_ptr<OneLinkedList<double>::Object> ptr_lst = lst.get_head();
-    while(ptr_lst) {
-        double res = ptr_lst->get_data();
-        ptr_lst = ptr_lst->get_next();
-    }
-
-    // перебор второго списка
-    std::shared_ptr<OneLinkedList<int>::Object> ptr_lst_int = lst_int.get_head();
-    while(ptr_lst_int) {
-        int a = ptr_lst_int->get_data();
-        ptr_lst_int = ptr_lst_int->get_next();
-    }
-
 
     try {
         double cmp = lst[-1];
