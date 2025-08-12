@@ -203,6 +203,9 @@ public:
         right.capacity = 0;
         return *this;
     }
+    Vector<T>& operator=(std::initializer_list<T> ar) {
+        //
+    }
     Vector<T>& operator+=(const Vector<T>& right) {
         this->resize(this->length + right.length, false);
         for(size_t i = 0; i < right.length; i++) {
