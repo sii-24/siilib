@@ -46,4 +46,9 @@ class ResizeError : public MemoryException {
 public:
     ResizeError() : MemoryException("Resize failed: bad_alloc") { }
 };
+
+class AllocError : public MemoryException {
+public:
+    AllocError() : MemoryException("Memory allocation failed: bad_alloc") { }
+};
 }
