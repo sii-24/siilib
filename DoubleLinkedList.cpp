@@ -4,13 +4,9 @@
 #include "Exception.cpp"
 
 
-#define SKIP_STEP 4
-
-
 namespace siilib {
 template <typename T>
-class DoubleLinkedList {
-public:  
+class DoubleLinkedList { 
 
     struct Object {
         T data;
@@ -19,20 +15,75 @@ public:
 
         Object(const T& data) : data(data) { }
         Object(T&& data) : data(std::move(data)) { }
-
-        T& get_data() { return data; }
-        Object* get_next() { return next; }
-        Object* get_prev() { return prev; }
     };
 
-private:
     Object* head{nullptr};
     Object* tail{nullptr};
     size_t length{0};
 
+    Object* _at(int index) {
+        if(index < 0) index = static_cast<int>(length) + index;
+        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
+        Object* ptr;
+        if(index < length / 2) {
+            ptr = head;
+            for(int i = 0; i < index; i++) ptr = ptr->next;
+        }
+        else {
+            ptr = tail;
+            for(int i = length - 1; i > index; i--) ptr = ptr->prev;
+        }
+        return ptr;
+    }
+
+    template <typename U>
+    T& _push_back(U&& x) {
+        Object* ptr = new Object(std::forward<U>(x));
+        if(!tail) {
+            head = tail = ptr;
+        }
+        else {
+            tail->next = ptr;
+            ptr->prev = tail;
+            tail = ptr;
+        }
+        length++;
+        return tail->data;
+    }
+
+    template <typename U>
+    T& _push_front(U&& x) {
+        Object* ptr = new Object(std::forward<U>(x));
+        if(!head) {
+            head = tail = ptr;
+        }
+        else {
+            head->prev = ptr;
+            ptr->next = head;
+            head = ptr;
+        }
+        length++;
+        return head->data;
+    }
+
+    template <typename U>
+    T& _insert(int index, U&& x) {
+        if(index == 0) return push_front(std::forward<U>(x));
+        if(index == length) return push_back(std::forward<U>(x));
+        Object* left = _at(index - 1);
+        Object* right = left->next;
+        Object* ptr = new Object(std::forward<U>(x));
+        left->next = ptr;
+        right->prev = ptr;
+        ptr->prev = left;
+        ptr->next = right;
+        length++;
+        return ptr->data;
+    }
+
 public:
     DoubleLinkedList() { }
-    DoubleLinkedList(T* ar, size_t len) {
+    DoubleLinkedList(const T* ar, size_t len) {
         for(int i = 0; i < len; i++) this->push_back(ar[i]);
     }
     DoubleLinkedList(const DoubleLinkedList<T>& right) {
@@ -56,80 +107,32 @@ public:
 
     void clear() {
         Object* ptr = head;
-        Object* tmp;
-        while(ptr != nullptr) {
-            tmp = ptr;
-            ptr = ptr->next;
-            delete tmp;
+        while(head) {
+            ptr = head;
+            head = head->next;
+            delete ptr;
         }
         head = tail = nullptr;
         length = 0;
     }
 
     bool is_empty() const { return length == 0; }
-    Object* get_head() const { 
-        if(length == 0) throw EmptyError();
-        return head; 
-    } 
-    Object* get_tail() const { 
-        if(length == 0) throw EmptyError();
-        return tail; 
-    }
+
     size_t get_length() const { return length; }
 
 
-    Object& push_back(const T& x) {
-        Object* ptr = new Object(x);
-        if(!tail) {
-            head = tail = ptr;
-        }
-        else {
-            tail->next = ptr;
-            ptr->prev = tail;
-            tail = ptr;
-        }
-        length++;
-        return *tail;
+    T& push_back(const T& x) {
+        return _push_back(x);
     }
-    Object& push_back(T&& x) {
-        Object* ptr = new Object(std::move(x));
-        if(!tail) {
-            head = tail = ptr;
-        }
-        else {
-            tail->next = ptr;
-            ptr->prev = tail;
-            tail = ptr;
-        }
-        length++;
-        return *tail;
+    T& push_back(T&& x) {
+        return _push_back(std::move(x));
     }
 
-    Object& push_front(const T& x) {
-        Object* ptr = new Object(x);
-        if(!head) {
-            head = tail = ptr;
-        }
-        else {
-            head->prev = ptr;
-            ptr->next = head;
-            head = ptr;
-        }
-        length++;
-        return *head;
+    T& push_front(const T& x) {
+        return _push_front(x);
     }
-    Object& push_front(T&& x) {
-        Object* ptr = new Object(std::move(x));
-        if(!head) {
-            head = tail = ptr;
-        }
-        else {
-            head->prev = ptr;
-            ptr->next = head;
-            head = ptr;
-        }
-        length++;
-        return *head;
+    T& push_front(T&& x) {
+        return _push_front(std::move(x));
     }
     T pop_back() {
         if(!tail) throw EmptyError();
@@ -164,66 +167,16 @@ public:
         return res;
     }
 
-    Object& insert(int index, const T& x) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index > static_cast<int>(length)) throw IndexError();
-        if(index == 0) return push_front(x);
-        if(index == length) return push_back(x);
-        Object* left;
-        if(index < length / 2) {
-            left = head;
-            for(int i = 0; i < index-1; i++) left = left->next;
-        }
-        else {
-            left = tail;
-            for(int i = length - 1; i > index-1; i--) left = left->prev;
-        }
-        Object* right = left->next;
-        Object* ptr = new Object(x);
-        left->next = ptr;
-        right->prev = ptr;
-        ptr->prev = left;
-        ptr->next = right;
-        length++;
-        return *ptr;
+    T& insert(int index, const T& x) {
+        return _insert(index, x);
     }
-    Object& insert(int index, T&& x) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index > static_cast<int>(length)) throw IndexError();
-        if(index == 0) return push_front(std::move(x));
-        if(index == length) return push_back(std::move(x));
-        Object* left;
-        if(index < length / 2) {
-            left = head;
-            for(int i = 0; i < index-1; i++) left = left->next;
-        }
-        else {
-            left = tail;
-            for(int i = length - 1; i > index-1; i--) left = left->prev;
-        }
-        Object* right = left->next;
-        Object* ptr = new Object(std::move(x));
-        left->next = ptr;
-        right->prev = ptr;
-        ptr->prev = left;
-        ptr->next = right;
-        length++;
-        return *ptr;
+    T& insert(int index, T&& x) {
+        return _insert(index, std::move(x));
     }
     T erase(int index) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
         if(index == 0) return pop_front();
         if(index == length-1) return pop_back();
-        Object* ptr;
-        if(index < length / 2) {
-            ptr = head;
-            for(int i = 0; i < index; i++) ptr = ptr->next;
-        }
-        else {
-            ptr = tail;
-            for(int i = length - 1; i > index; i--) ptr = ptr->prev;
-        }
+        Object* ptr = _at(index);
         T res = std::move(ptr->data);
         ptr->prev->next = ptr->next;
         ptr->next->prev = ptr->prev;
@@ -233,32 +186,10 @@ public:
     }
 
     T& operator[](int index) {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        Object* ptr;
-        if(index < length / 2) {
-            ptr = head;
-            for(int i = 0; i < index; i++) ptr = ptr->next;
-        }
-        else {
-            ptr = tail;
-            for(int i = length - 1; i > index; i--) ptr = ptr->prev;
-        }
-        return ptr->data;
+        return _at(index)->data;
     }
     const T& operator[](int index) const {
-        if(index < 0) index = static_cast<int>(length) + index;
-        if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        Object* ptr;
-        if(index < length / 2) {
-            ptr = head;
-            for(int i = 0; i < index; i++) ptr = ptr->next;
-        }
-        else {
-            ptr = tail;
-            for(int i = length - 1; i > index; i--) ptr = ptr->prev;
-        }
-        return ptr->data;
+        return _at(index)->data;
     }
 
     DoubleLinkedList<T>& operator=(const DoubleLinkedList<T>& right) {
@@ -287,6 +218,7 @@ public:
         return *this;
     }
     DoubleLinkedList<T>& operator+=(DoubleLinkedList<T>&& right) {
+        if(&right == this) return *this;
         if (!right.head) return *this;
         if (!head) {
             head = right.head;
@@ -307,6 +239,12 @@ public:
 
 int main() {
     using namespace siilib;
+
+    DoubleLinkedList<int> l;
+    for(int i = 0; i < 20; i++) l.push_back(i);
+    int i1 = l[4];
+    int i2 = l[11];
+    int i3 = l[17];
     DoubleLinkedList<double> lst; // пустой двусвязный список для хранения данных типа double (структура)
 
     lst.push_back(double {1.0}); // добавление в конец списка
@@ -329,20 +267,6 @@ int main() {
 
     int var = lst_int[1]; // чтение данных из второго элемента списка
     lst_int[2] = -5; // запись данных в третий элемент списка
-
-    // перебор первого списка
-    DoubleLinkedList<double>::Object* ptr_lst = lst.get_head();
-    while(ptr_lst) {
-        double res = ptr_lst->get_data();
-        ptr_lst = ptr_lst->get_next();
-    }
-
-    // перебор второго списка
-    DoubleLinkedList<int>::Object* ptr_lst_int = lst_int.get_head();
-    while(ptr_lst_int) {
-        int a = ptr_lst_int->get_data();
-        ptr_lst_int = ptr_lst_int->get_next();
-    }
 
 
     try {
