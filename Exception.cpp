@@ -30,9 +30,27 @@ public:
     IndexError() : LookupException("Invalid element index") { }
 };
 
+class KeyError : public LookupException {
+public:
+    KeyError() : LookupException("Key not found") { }
+};
+
 class EmptyError : public LookupException {
 public:
     EmptyError() : LookupException("Container is empty") { }
+};
+
+
+
+class TypeError : public Exception {
+public:
+    TypeError() : Exception("Invalid type") { }
+};
+
+
+class ValueError : public Exception {
+public:
+    ValueError() : Exception("Invalid value") { }
 };
 
 

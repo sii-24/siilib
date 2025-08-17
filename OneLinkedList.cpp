@@ -24,35 +24,41 @@ class OneLinkedList {
         if(index < 0) index = static_cast<int>(length) + index;
         if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
         Object* ptr = head;
-        for(int i = 0; i < index; i++) ptr = ptr->next;
+        for(int i = 0; i < index; ++i) ptr = ptr->next;
         return ptr;
     }
 
     template <typename U>
     T& _push_back(U&& x) {
-        Object* ptr = new Object(std::forward<U>(x));
-        if(!tail) {
-            head = tail = ptr;
+        try {
+            Object* ptr = new Object(std::forward<U>(x));
+            if(!tail) {
+                head = tail = ptr;
+            }
+            else {
+                tail->next = ptr;
+                tail = ptr;
+            }
+            length++;
         }
-        else {
-            tail->next = ptr;
-            tail = ptr;
-        }
-        length++;
+        catch(std::bad_alloc&) { throw AllocError(); }
         return tail->data;
     }
 
     template <typename U>
     T& _push_front(U&& x) {
-        Object* ptr = new Object(std::forward<U>(x));
-        if(!head) {
-            head = tail = ptr;
+        try {
+            Object* ptr = new Object(std::forward<U>(x));
+            if(!head) {
+                head = tail = ptr;
+            }
+            else {
+                ptr->next = head;
+                head = ptr;
+            }
+            length++;
         }
-        else {
-            ptr->next = head;
-            head = ptr;
-        }
-        length++;
+        catch(std::bad_alloc&) { throw AllocError(); }
         return head->data;
     }
 
@@ -60,20 +66,23 @@ class OneLinkedList {
     T& _insert(int index, U&& x) {
         if(index == 0) return _push_front(std::forward<U>(x));
         if(index == length) return _push_back(std::forward<U>(x));
-        Object* left = _at(index - 1);
-        Object* right = left->next;
-        Object* ptr = new Object(std::forward<U>(x));
-        left->next = ptr;
-        ptr->next = right;
-        length++;
-        return ptr->data;
+        try {
+            Object* ptr = new Object(std::forward<U>(x));
+            Object* left = _at(index - 1);
+            Object* right = left->next;
+            left->next = ptr;
+            ptr->next = right;
+            length++;
+            return ptr->data;
+        }
+        catch(std::bad_alloc&) { throw AllocError(); }
     }
 
 
 public:
     OneLinkedList() { }
     OneLinkedList(const T* ar, size_t len) {
-        for(size_t i = 0; i < len; i++) this->push_back(ar[i]);
+        for(size_t i = 0; i < len; ++i) this->push_back(ar[i]);
     }
     OneLinkedList(const OneLinkedList<T>& right) {
         for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
@@ -173,6 +182,38 @@ public:
         return res;
     }
 
+    bool remove(const T& key) {
+        Object* ptr = head;
+        for(size_t i = 0; i < length; ++i) {
+            if(ptr->data == key) {
+                this->erase(i);
+                return true;
+            }
+            ptr = ptr->next;
+        }
+        return false;
+    }
+
+    OneLinkedList<T>& extend(const OneLinkedList<T>& right) {
+        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
+        return *this;
+    }
+    OneLinkedList<T>& extend(OneLinkedList<T>&& right) {
+        if(&right == this) return *this;
+        if (!right.head) return *this;
+        if (!head) {
+            head = right.head;
+        }
+        else {
+            tail->next = right.head;
+        }
+        tail = right.tail;
+        length += right.length;
+        right.head = right.tail = nullptr;
+        right.length = 0;
+        return *this;
+    }
+
     T& operator[](int index) {
         return _at(index)->data;
     }
@@ -199,25 +240,6 @@ public:
     OneLinkedList<T>& operator=(std::initializer_list<T> ar) {
         this->clear();
         for(const T& x : ar) this->push_back(x);
-        return *this;
-    }
-    OneLinkedList<T>& operator+=(const OneLinkedList<T>& right) {
-        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
-        return *this;
-    }
-    OneLinkedList<T>& operator+=(OneLinkedList<T>&& right) {
-        if(&right == this) return *this;
-        if (!right.head) return *this;
-        if (!head) {
-            head = right.head;
-        }
-        else {
-            tail->next = right.head;
-        }
-        tail = right.tail;
-        length += right.length;
-        right.head = right.tail = nullptr;
-        right.length = 0;
         return *this;
     }
 };

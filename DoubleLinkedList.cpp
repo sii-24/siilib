@@ -27,42 +27,48 @@ class DoubleLinkedList {
         Object* ptr;
         if(index < length / 2) {
             ptr = head;
-            for(int i = 0; i < index; i++) ptr = ptr->next;
+            for(int i = 0; i < index; ++i) ptr = ptr->next;
         }
         else {
             ptr = tail;
-            for(int i = length - 1; i > index; i--) ptr = ptr->prev;
+            for(int i = length - 1; i > index; --i) ptr = ptr->prev;
         }
         return ptr;
     }
 
     template <typename U>
     T& _push_back(U&& x) {
-        Object* ptr = new Object(std::forward<U>(x));
-        if(!tail) {
-            head = tail = ptr;
+        try {
+            Object* ptr = new Object(std::forward<U>(x));
+            if(!tail) {
+                head = tail = ptr;
+            }
+            else {
+                tail->next = ptr;
+                ptr->prev = tail;
+                tail = ptr;
+            }
+            length++;
         }
-        else {
-            tail->next = ptr;
-            ptr->prev = tail;
-            tail = ptr;
-        }
-        length++;
+        catch(std::bad_alloc&) { throw AllocError(); }
         return tail->data;
     }
 
     template <typename U>
     T& _push_front(U&& x) {
-        Object* ptr = new Object(std::forward<U>(x));
-        if(!head) {
-            head = tail = ptr;
+        try {
+            Object* ptr = new Object(std::forward<U>(x));
+            if(!head) {
+                head = tail = ptr;
+            }
+            else {
+                head->prev = ptr;
+                ptr->next = head;
+                head = ptr;
+            }
+            length++;
         }
-        else {
-            head->prev = ptr;
-            ptr->next = head;
-            head = ptr;
-        }
-        length++;
+        catch(std::bad_alloc&) { throw AllocError(); }
         return head->data;
     }
 
@@ -70,22 +76,25 @@ class DoubleLinkedList {
     T& _insert(int index, U&& x) {
         if(index == 0) return push_front(std::forward<U>(x));
         if(index == length) return push_back(std::forward<U>(x));
-        Object* left = _at(index - 1);
-        Object* right = left->next;
-        Object* ptr = new Object(std::forward<U>(x));
-        left->next = ptr;
-        right->prev = ptr;
-        ptr->prev = left;
-        ptr->next = right;
-        length++;
-        return ptr->data;
+        try {
+            Object* ptr = new Object(std::forward<U>(x));
+            Object* left = _at(index - 1);
+            Object* right = left->next;
+            left->next = ptr;
+            right->prev = ptr;
+            ptr->prev = left;
+            ptr->next = right;
+            length++;
+            return ptr->data;
+        }
+        catch(std::bad_alloc&) { throw AllocError(); }
     }
 
 
 public:
     DoubleLinkedList() { }
     DoubleLinkedList(const T* ar, size_t len) {
-        for(size_t i = 0; i < len; i++) this->push_back(ar[i]);
+        for(size_t i = 0; i < len; ++i) this->push_back(ar[i]);
     }
     DoubleLinkedList(const DoubleLinkedList<T>& right) {
         for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
@@ -186,6 +195,39 @@ public:
         return res;
     }
 
+    bool remove(const T& key) {
+        Object* ptr = head;
+        for(size_t i = 0; i < length; ++i) {
+            if(ptr->data == key) {
+                this->erase(i);
+                return true;
+            }
+            ptr = ptr->next;
+        }
+        return false;
+    }
+
+    DoubleLinkedList<T>& extend(const DoubleLinkedList<T>& right) {
+        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
+        return *this;
+    }
+    DoubleLinkedList<T>& extend(DoubleLinkedList<T>&& right) {
+        if(&right == this) return *this;
+        if (!right.head) return *this;
+        if (!head) {
+            head = right.head;
+        }
+        else {
+            tail->next = right.head;
+            right.head->prev = tail;
+        }
+        tail = right.tail;
+        length += right.length;
+        right.head = right.tail = nullptr;
+        right.length = 0;
+        return *this;
+    }
+
     T& operator[](int index) {
         return _at(index)->data;
     }
@@ -214,26 +256,6 @@ public:
         for(const T& x : ar) this->push_back(x);
         return *this;
     }
-    DoubleLinkedList<T>& operator+=(const DoubleLinkedList<T>& right) {
-        for(Object* ptr = right.head; ptr != nullptr; ptr = ptr->next) this->push_back(ptr->data);
-        return *this;
-    }
-    DoubleLinkedList<T>& operator+=(DoubleLinkedList<T>&& right) {
-        if(&right == this) return *this;
-        if (!right.head) return *this;
-        if (!head) {
-            head = right.head;
-        }
-        else {
-            tail->next = right.head;
-            right.head->prev = tail;
-        }
-        tail = right.tail;
-        length += right.length;
-        right.head = right.tail = nullptr;
-        right.length = 0;
-        return *this;
-    }
 };
 }
 
@@ -242,7 +264,7 @@ int main() {
     using namespace siilib;
 
     DoubleLinkedList<int> l;
-    for(int i = 0; i < 20; i++) l.push_back(i);
+    for(int i = 0; i < 20; ++i) l.push_back(i);
     int i1 = l[4];
     int i2 = l[11];
     int i3 = l[17];

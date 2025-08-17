@@ -15,7 +15,7 @@ class Array {
     T& _insert(int index, U&& x) {
         if(index < 0) index = static_cast<int>(length) + index;
         if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        for(size_t i = length-1; i > index; i--) {
+        for(size_t i = length-1; i > static_cast<size_t>(index); --i) {
             data[i] = std::move(data[i-1]);
         }
         return data[index] = std::forward<U>(x);
@@ -35,7 +35,7 @@ public:
             size_t tmp_length = length ? length : len;
             data = new T[tmp_length];
             this->length = tmp_length;
-            for(size_t i = 0; i < len && i < tmp_length; i++) {
+            for(size_t i = 0; i < len && i < tmp_length; ++i) {
                 data[i] = ar[i];
             }
         }
@@ -45,7 +45,7 @@ public:
         try {
             this->data = new T[right.length];
             this->length = right.length;
-            for(size_t i = 0; i < length; i++) {
+            for(size_t i = 0; i < length; ++i) {
                 this->data[i] = right.data[i];
             }
         }
@@ -90,12 +90,24 @@ public:
     T erase(int index) {
         if(index < 0) index = static_cast<int>(length) + index;
         if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        T tmp = data[index];
-        for(size_t i = index; i < length - 1; i++) {
+        T tmp = std::move(data[index]);
+        for(size_t i = index; i < length - 1; ++i) {
             data[i] = std::move(data[i+1]);
         }
         data[length - 1] = T();
         return tmp;
+    }
+
+    bool remove(const T& key) {
+        for(size_t i = 0; i < length; ++i) {
+            if(data[i] == key) {
+                for(size_t j = i; j < length - 1; ++j) {
+                    data[j] = std::move(data[j+1]);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     T& operator[](int index) {
@@ -111,16 +123,9 @@ public:
 
     Array<T>& operator=(const Array<T>& right) {
         if(&right == this) return *this;
-        try {
-            T* tmp = new T[right.length];
-            delete[] data;
-            this->data = tmp;
-            this->length = right.length;
-            for(size_t i = 0; i < length; i++) {
-                this->data[i] = right.data[i];
-            }
+        for(size_t i = 0; i < length && i < right.length; ++i) {
+            this->data[i] = right.data[i];
         }
-        catch(std::bad_alloc&) { throw AllocError(); }
         return *this;
     }
     Array<T>& operator=(Array<T>&& right) noexcept {
@@ -133,20 +138,11 @@ public:
         return *this;
     }
     Array<T>& operator=(std::initializer_list<T> ar) {
-        if(ar.size() > length) {
-            try {
-                size_t tmp_length = ar.size();
-                T* tmp = new T[tmp_length];
-                delete[] data;
-                data = tmp;
-                length = tmp_length;
-            }
-            catch(std::bad_alloc&) { throw AllocError(); }
-        }
         size_t i = 0;
         for (const T& val : ar) {
+            if(i == length) break;
             data[i++] = val;
-        }
+            }
         return *this;
     }
 };

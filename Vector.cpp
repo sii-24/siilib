@@ -25,7 +25,7 @@ class Vector {
                 capacity *= resize_factor;
             }
             catch(const std::bad_alloc&) { throw ResizeError(); }
-            for(size_t i = 0; i < length; i++) {
+            for(size_t i = 0; i < length; ++i) {
                 ptr[i] = std::move(data[i]);
             }
             delete[] data;
@@ -40,7 +40,7 @@ class Vector {
                 capacity /= resize_factor;
             }
             catch(const std::bad_alloc&) { throw ResizeError(); }
-            for(size_t i = 0; i < length; i++) {
+            for(size_t i = 0; i < length; ++i) {
                ptr[i] = std::move(data[i]);
             }
             delete[] data;
@@ -58,7 +58,7 @@ class Vector {
     template <typename U>
     T& _push_front(U&& x) {
         if(length == capacity) this->_inc();
-        for(size_t i = length; i > 0; i--) {
+        for(size_t i = length; i > 0; --i) {
             data[i] = std::move(data[i-1]);
         }
         length++;
@@ -70,7 +70,7 @@ class Vector {
         if(index < 0) index = static_cast<int>(length) + index;
         if(index < 0 || index > static_cast<int>(length)) throw IndexError();
         if(length == capacity) this->_inc();
-        for(size_t i = length; i > index; i--) {
+        for(size_t i = length; i > index; --i) {
             data[i] = std::move(data[i-1]);
         }
         length++;
@@ -80,24 +80,33 @@ class Vector {
 
 public:
     Vector(size_t capacity=MIN_CAPACITY, unsigned resize_factor=2) : length(0), capacity(capacity), resize_factor(resize_factor < 2 ? 2 : resize_factor), manual_memory(capacity != MIN_CAPACITY) {
-        data = new T[capacity];
+        try {
+            data = new T[capacity];
+        }
+        catch(std::bad_alloc&) { throw AllocError(); }
     }
     Vector(T ar[], size_t len, unsigned resize_factor=2) : length(len), capacity(MIN_CAPACITY), resize_factor(resize_factor < 2 ? 2 : resize_factor), manual_memory(false) {
-        while(capacity <= length) capacity *= resize_factor;
-        data = new T[capacity];
-        for(size_t i = 0; i < length; i++) {
-            data[i] = ar[i];
+        try {
+            while(capacity <= length) capacity *= resize_factor;
+            data = new T[capacity];
+            for(size_t i = 0; i < length; ++i) {
+                data[i] = ar[i];
+            }
         }
+        catch(std::bad_alloc&) { throw AllocError(); }
     }
     Vector(const Vector<T>& right) {
-        this->length = right.length;
-        this->capacity = right.capacity;
-        this->resize_factor = right.resize_factor;
-        this->manual_memory = right.manual_memory;
-        this->data = new T[capacity];
-        for(size_t i = 0; i < length; i++) {
-            this->data[i] = right.data[i];
+        try {
+            this->data = new T[right.capacity];
+            this->length = right.length;
+            this->capacity = right.capacity;
+            this->resize_factor = right.resize_factor;
+            this->manual_memory = right.manual_memory;
+            for(size_t i = 0; i < length; ++i) {
+                this->data[i] = right.data[i];
+            }
         }
+        catch(std::bad_alloc&) { throw AllocError(); }
     }
     Vector(Vector<T>&& right) noexcept {
         this->length = right.length;
@@ -110,12 +119,15 @@ public:
         right.data = nullptr;
     }
     Vector(std::initializer_list<T> ar) : length(ar.size()), capacity(MIN_CAPACITY), resize_factor(2), manual_memory(false) {
-        while(capacity <= length) capacity *= resize_factor;
-        data = new T[capacity];
-        size_t i = 0;
-        for (const T& val : ar) {
-            data[i++] = val;
+        try {
+            while(capacity <= length) capacity *= resize_factor;
+            data = new T[capacity];
+            size_t i = 0;
+            for (const T& val : ar) {
+                data[i++] = val;
+            }
         }
+        catch(std::bad_alloc&) { throw AllocError(); }
     }
     ~Vector() {
         this->clear();
@@ -149,7 +161,7 @@ public:
             capacity = tmp_capacity;
         }
         catch(const std::bad_alloc&) { throw ResizeError(); }
-        for(size_t i = 0; i < length; i++) {
+        for(size_t i = 0; i < length; ++i) {
             ptr[i] = std::move(data[i]);
         }
         delete[] data;
@@ -189,7 +201,7 @@ public:
     T pop_front() {
         if(length == 0) throw EmptyError();
         T tmp = std::move(data[0]);
-        for(size_t i = 0; i < length - 1; i++) {
+        for(size_t i = 0; i < length - 1; ++i) {
             data[i] = std::move(data[i+1]);
         }
         length--;
@@ -207,13 +219,42 @@ public:
     T erase(int index) {
         if(index < 0) index = static_cast<int>(length) + index;
         if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
-        T tmp = data[index];
-        for(size_t i = index; i < length - 1; i++) {
+        T tmp = std::move(data[index]);
+        for(size_t i = index; i < length - 1; ++i) {
             data[i] = std::move(data[i+1]);
         }
         length--;
         if(length < capacity / resize_factor) this->_dec();
         return tmp;
+    }
+
+    bool remove(const T& key) {
+        for(size_t i = 0; i < length; ++i) {
+            if(data[i] == key) {
+                for(size_t j = i; j < length - 1; ++j) {
+                    data[j] = std::move(data[j+1]);
+                }
+                length--;
+                if(length < capacity / resize_factor) this->_dec();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    Vector<T>& extend(const Vector<T>& right) {
+        this->resize(this->length + right.length, false);
+        for(size_t i = 0; i < right.length; ++i) {
+            this->data[length++] = right.data[i];
+        }
+        return *this;
+    }
+    Vector<T>& extend(Vector<T>&& right) {
+        this->resize(this->length + right.length, false);
+        for(size_t i = 0; i < right.length; ++i) {
+            this->data[length++] = right.data[i];
+        }
+        return *this;
     }
 
     T& operator[](int index) {
@@ -239,7 +280,7 @@ public:
         this->length = right.length;
         this->resize_factor = right.resize_factor;
         this->manual_memory = right.manual_memory;
-        for(size_t i = 0; i < length; i++) {
+        for(size_t i = 0; i < length; ++i) {
             this->data[i] = right.data[i];
         }
         return *this;
@@ -275,29 +316,6 @@ public:
         }
         return *this;
     }
-    Vector<T>& operator+=(const Vector<T>& right) {
-        this->resize(this->length + right.length, false);
-        for(size_t i = 0; i < right.length; i++) {
-            this->data[length++] = right.data[i];
-        }
-        return *this;
-    }
-    Vector<T>& operator+=(Vector<T>&& right) {
-        this->resize(this->length + right.length, false);
-        for(size_t i = 0; i < right.length; i++) {
-            this->data[length++] = right.data[i];
-        }
-        return *this;
-    }
-
-    Vector<T> operator+(const Vector<T>& right) const {
-        Vector<T> res{*this};
-        res.resize(res.length + right.length, false);
-        for(size_t i = 0; i < right.length; i++) {
-            res.data[res.length++] = right.data[i];
-        }
-        return res;
-    }
 };
 }
 
@@ -305,18 +323,18 @@ public:
 int main() {
     using namespace siilib;
     Vector<int> v;
-    for(int i = 0; i < 20; i++) {
+    for(int i = 0; i < 20; ++i) {
         v.push_back(i);
     }
-    for(int i = 0; i < 20; i++) {
+    for(int i = 0; i < 20; ++i) {
         v.pop_back();
     } 
 
     Vector<int> v2(20);
-    for(int i = 0; i < 20; i++) {
+    for(int i = 0; i < 20; ++i) {
         v2.push_back(i);
     }
-    for(int i = 0; i < 20; i++) {
+    for(int i = 0; i < 20; ++i) {
         v2.pop_back();
     } 
     v2.resize(9);
@@ -347,8 +365,8 @@ int main() {
     size_t len = ar_d.get_size(); // возвращает поле length
 
     Vector<short> ar_d2 = ar_d; // копирование (конструктор копирования)
-    ar_d2 += ar_d; // добавление значений массива ar_d в конец массива ar_d2
-    Vector<short> res = ar_d2 + ar_d; // соединение двух массивов (сами массивы ar_d, ar_d2 не меняются)
+    ar_d2.extend(ar_d); // добавление значений массива ar_d в конец массива ar_d2
+    //Vector<short> res = ar_d2 + ar_d; // соединение двух массивов (сами массивы ar_d, ar_d2 не меняются)
     if( !ar_d2.is_empty() ) // метод empty возвращает true, если массив пуст, и false иначе
     {
         ar_d2.clear(); // удаление всех элементов из массива (параметр length равен 0)
