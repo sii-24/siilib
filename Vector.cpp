@@ -1,10 +1,10 @@
 #include <iostream>
 #include <memory>
 
-#include "Exception.cpp"
+#include "Exception.hpp"
 
 
-#define MIN_CAPACITY 8
+#define VECTOR_MIN_CAPACITY 8
 
 
 namespace siilib {
@@ -33,7 +33,7 @@ class Vector {
         }
     }
     void _dec() {
-        if(length < capacity / resize_factor && capacity > MIN_CAPACITY && !this->manual_memory) {
+        if(length < capacity / resize_factor && capacity > VECTOR_MIN_CAPACITY && !this->manual_memory) {
             T* ptr;
             try {
                 ptr = new T[capacity / resize_factor];
@@ -79,13 +79,13 @@ class Vector {
 
 
 public:
-    Vector(size_t capacity=MIN_CAPACITY, unsigned resize_factor=2) : length(0), capacity(capacity), resize_factor(resize_factor < 2 ? 2 : resize_factor), manual_memory(capacity != MIN_CAPACITY) {
+    Vector(size_t capacity=VECTOR_MIN_CAPACITY, unsigned resize_factor=2) : length(0), capacity(capacity), resize_factor(resize_factor < 2 ? 2 : resize_factor), manual_memory(capacity != VECTOR_MIN_CAPACITY) {
         try {
             data = new T[capacity];
         }
         catch(std::bad_alloc&) { throw AllocError(); }
     }
-    Vector(T ar[], size_t len, unsigned resize_factor=2) : length(len), capacity(MIN_CAPACITY), resize_factor(resize_factor < 2 ? 2 : resize_factor), manual_memory(false) {
+    Vector(T ar[], size_t len, unsigned resize_factor=2) : length(len), capacity(VECTOR_MIN_CAPACITY), resize_factor(resize_factor < 2 ? 2 : resize_factor), manual_memory(false) {
         try {
             while(capacity <= length) capacity *= resize_factor;
             data = new T[capacity];
@@ -118,7 +118,7 @@ public:
         right.capacity = 0;
         right.data = nullptr;
     }
-    Vector(std::initializer_list<T> ar) : length(ar.size()), capacity(MIN_CAPACITY), resize_factor(2), manual_memory(false) {
+    Vector(std::initializer_list<T> ar) : length(ar.size()), capacity(VECTOR_MIN_CAPACITY), resize_factor(2), manual_memory(false) {
         try {
             while(capacity <= length) capacity *= resize_factor;
             data = new T[capacity];
@@ -155,7 +155,7 @@ public:
             }
             if(len < capacity) {
                 while(tmp_capacity >= len) tmp_capacity /= resize_factor;
-                tmp_capacity = tmp_capacity > MIN_CAPACITY ? tmp_capacity : MIN_CAPACITY;
+                tmp_capacity = tmp_capacity > VECTOR_MIN_CAPACITY ? tmp_capacity : VECTOR_MIN_CAPACITY;
             }
             ptr = new T[tmp_capacity];
             capacity = tmp_capacity;
@@ -300,7 +300,7 @@ public:
     }
     Vector<T>& operator=(std::initializer_list<T> ar) {
         try {
-            size_t tmp_capacity = MIN_CAPACITY;
+            size_t tmp_capacity = VECTOR_MIN_CAPACITY;
             while(tmp_capacity <= ar.size()) tmp_capacity *= resize_factor;
             T* tmp = new T[tmp_capacity];
             delete[] data;
@@ -317,86 +317,4 @@ public:
         return *this;
     }
 };
-}
-
-
-int main() {
-    using namespace siilib;
-    Vector<int> v;
-    for(int i = 0; i < 20; ++i) {
-        v.push_back(i);
-    }
-    for(int i = 0; i < 20; ++i) {
-        v.pop_back();
-    } 
-
-    Vector<int> v2(20);
-    for(int i = 0; i < 20; ++i) {
-        v2.push_back(i);
-    }
-    for(int i = 0; i < 20; ++i) {
-        v2.pop_back();
-    } 
-    v2.resize(9);
-    Vector<short> ar_d; // создание пустого динамического массива (length = 0, capacity = MIN_CAPACITY)
-
-    ar_d.push_back(1); // добавление значения в конец
-    ar_d.push_back(1); 
-    ar_d.push_front(2); // добавление значения в начало 
-    ar_d.push_front(2);
-    ar_d.pop_back(); // удаление последнего элемента
-    ar_d.pop_front(); // удаление первого элемента
-
-    ar_d[0] = 5;       // изменение значения первого элемента
-    short d = ar_d[1]; // считывание значения второго элемента
-
-    ar_d[-1] = 78;
-    std::cout << ar_d[-1] << std::endl;
-
-    ar_d.insert(-1, 129);
-    for(int i = 0; i < ar_d.get_length(); i++) {
-        std::cout << ar_d[i] << " ";
-    }
-    std::cout << std::endl;
-    ar_d.insert(1, 70); // вставка элемента по индексу indx со значением 70
-    ar_d.erase(1); // удаление элемента по индексу indx
-
-    size_t cap = ar_d.get_capacity(); // возвращает поле capacity
-    size_t len = ar_d.get_size(); // возвращает поле length
-
-    Vector<short> ar_d2 = ar_d; // копирование (конструктор копирования)
-    ar_d2.extend(ar_d); // добавление значений массива ar_d в конец массива ar_d2
-    //Vector<short> res = ar_d2 + ar_d; // соединение двух массивов (сами массивы ar_d, ar_d2 не меняются)
-    if( !ar_d2.is_empty() ) // метод empty возвращает true, если массив пуст, и false иначе
-    {
-        ar_d2.clear(); // удаление всех элементов из массива (параметр length равен 0)
-    }
-
-    // перебор всех сохраненных значений в динамическом массиве ar_d
-    size_t sz = ar_d.get_length();
-    for(size_t i = 0; i < sz; ++i)
-        std::cout << ar_d[i] << " ";
-
-    try {
-        short v1 = ar_d[-1];
-    }
-    catch(const IndexError& e) {
-        std::cout << e.what() << std::endl;
-    }
-
-    try {
-        ar_d.insert(-2, 18);
-    }
-    catch(const IndexError& e) {
-        std::cout << e.what() << std::endl;
-    }
-
-    try {
-        ar_d.erase(100);
-    }
-    catch(const IndexError& e) {
-        std::cout << e.what() << std::endl;
-    } 
-
-    return 0;
 }

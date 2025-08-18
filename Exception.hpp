@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 
 
@@ -9,13 +11,6 @@ protected:
 public:
     Exception(std::string msg) : msg(msg) { }
     const char* what() const noexcept override { return msg.c_str(); }
-};
-
-
-
-class ArithmeticException : public Exception {
-public:
-    ArithmeticException(std::string msg) : Exception(msg) { }
 };
 
 
@@ -35,9 +30,21 @@ public:
     KeyError() : LookupException("Key not found") { }
 };
 
-class EmptyError : public LookupException {
+
+
+class SizeException : public Exception {
 public:
-    EmptyError() : LookupException("Container is empty") { }
+    SizeException(std::string msg) : Exception(msg) { }
+};
+
+class EmptyError : public SizeException {
+public:
+    EmptyError() : SizeException("Container is empty") { }
+};
+
+class OverflowError : public SizeException {
+public:
+    OverflowError() : SizeException("Container overflow") { }
 };
 
 
@@ -68,5 +75,11 @@ public:
 class AllocError : public MemoryException {
 public:
     AllocError() : MemoryException("Memory allocation failed: bad_alloc") { }
+};
+
+
+class ArithmeticException : public Exception {
+public:
+    ArithmeticException(std::string msg) : Exception(msg) { }
 };
 }
