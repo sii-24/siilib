@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 
 #include "Exception.hpp"
@@ -267,6 +266,11 @@ public:
         if(index < 0 || index >= static_cast<int>(length)) throw IndexError();
         return data[index];
     }
+
+    T& front() { return data[0]; }
+    const T& front() const { return data[0]; }
+    T& back() { return data[length-1]; }
+    const T& back() const { return data[length-1]; }
 
     Vector<T>& operator=(const Vector<T>& right) {
         if(&right == this) return *this;

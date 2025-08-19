@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "../Vector.cpp"
 
 
@@ -21,10 +23,12 @@ int main() {
     v2.resize(9);
     Vector<short> ar_d; // создание пустого динамического массива (length = 0, capacity = MIN_CAPACITY)
 
-    ar_d.push_back(1); // добавление значения в конец
-    ar_d.push_back(1); 
+    ar_d.push_back(3); // добавление значения в конец
+    ar_d.push_back(4); 
     ar_d.push_front(2); // добавление значения в начало 
-    ar_d.push_front(2);
+    ar_d.push_front(1);
+
+    std::cout << ar_d.front() << " " << ar_d.back() << std::endl;
     ar_d.pop_back(); // удаление последнего элемента
     ar_d.pop_front(); // удаление первого элемента
 

@@ -1,20 +1,20 @@
 #include <memory>
 
 #include "Exception.hpp"
-#include "DoubleLinkedList.cpp"
+#include "OneLinkedList.cpp"
 
 
 namespace siilib {
-template <typename T, typename Container = DoubleLinkedList<T>>
-class Stack {
+template <typename T, typename Container = OneLinkedList<T>>
+class Queue {
 
     Container c;
     size_t max_length{0};
 
 public:
-    Stack(size_t max_length=0) : max_length(max_length) { }
-    Stack(const Stack<T>& right) : max_length(right.max_length), c(right.c) { }
-    Stack(Stack<T>&& right) noexcept : max_length(right.max_length), c(std::move(right.c)) { }
+    Queue(size_t max_length=0) : max_length(max_length) { }
+    Queue(const Queue<T>& right) : max_length(right.max_length), c(right.c) { }
+    Queue(Queue<T>&& right) noexcept : max_length(right.max_length), c(std::move(right.c)) { }
 
     void clear() { c.clear(); }
 
@@ -32,21 +32,23 @@ public:
         return c.push_back(std::move(x));
     }
 
-    T pop() {
+    T pop() { 
         if(c.get_length() == 0) throw EmptyError();
-        return c.pop_back();
+        return c.pop_front();
     }
 
-    T& top() { return c.back(); }
-    const T& top() const { return c.back(); }
+    T& front() { return c.front(); }
+    const T& front() const { return c.front(); }
+    T& back() { return c.back(); }
+    const T& back() const { return c.back(); }
 
-    Stack<T>& operator=(const Stack<T>& right) {
+    Queue<T>& operator=(const Queue<T>& right) {
         if(&right == this) return *this;
         this->max_length = right.max_length;
         this->c = right.c;
         return *this;
     }
-    Stack<T>& operator=(Stack<T>&& right) noexcept {
+    Queue<T>& operator=(Queue<T>&& right) noexcept {
         if(&right == this) return *this;
         this->max_length = right.max_length;
         this->c = std::move(right.c);

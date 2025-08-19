@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "../DoubleLinkedList.cpp"
 
 
@@ -14,6 +16,9 @@ int main() {
     lst.push_back(double {1.0}); // добавление в конец списка
     lst.push_back(double {3.4}); // добавление в конец списка
     lst.push_front(double {-1.5}); // добавление в начало списка
+
+    std::cout << lst.front() << " " << lst.back() << std::endl;
+
     lst.insert(1, 78.9);
     lst.erase(2);
     lst.pop_back(); // удаление последнего элемента 

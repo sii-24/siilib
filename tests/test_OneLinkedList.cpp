@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "../OneLinkedList.cpp"
 
 
@@ -8,6 +10,9 @@ int main() {
     lst.push_back(double {1.0}); // добавление в конец списка
     lst.push_back(double {3.4}); // добавление в конец списка
     lst.push_front(double {-1.5}); // добавление в начало списка
+
+    std::cout << lst.front() << " " << lst.back() << std::endl;
+
     lst.pop_back(); // удаление последнего элемента (если его нет, то ничего не делать)
     lst.pop_front(); // удаление первого элемента (если его нет, то ничего не делать)
 

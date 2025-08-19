@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 
 #include "Exception.hpp"
@@ -220,6 +219,11 @@ public:
     const T& operator[](int index) const {
         return _at(index)->data;
     }
+
+    T& front() { return head->data; }
+    const T& front() const { return head->data; }
+    T& back() { return tail->data; }
+    const T& back() const { return tail->data; }
 
     OneLinkedList<T>& operator=(const OneLinkedList<T>& right) {
         if(&right == this) return *this;
