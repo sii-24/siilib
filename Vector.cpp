@@ -32,7 +32,7 @@ class Vector {
         }
     }
     void _dec() {
-        if(length < capacity / resize_factor && capacity > VECTOR_MIN_CAPACITY && !this->manual_memory) {
+        if(length < capacity / (resize_factor * 2) && capacity > VECTOR_MIN_CAPACITY && !this->manual_memory) {
             T* ptr;
             try {
                 ptr = new T[capacity / resize_factor];
@@ -192,7 +192,7 @@ public:
     T pop_back() {
         if(length == 0) throw EmptyError();
         length--;
-        if(length < capacity / resize_factor) this->_dec();
+        if(length < capacity / (resize_factor * 2)) this->_dec();
         T tmp = std::move(data[length]);
         data[length].~T();
         return tmp;
@@ -204,7 +204,7 @@ public:
             data[i] = std::move(data[i+1]);
         }
         length--;
-        if(length < capacity / resize_factor) this->_dec();
+        if(length < capacity / (resize_factor * 2)) this->_dec();
         data[length].~T();
         return tmp;
     }
@@ -223,22 +223,35 @@ public:
             data[i] = std::move(data[i+1]);
         }
         length--;
-        if(length < capacity / resize_factor) this->_dec();
+        if(length < capacity / (resize_factor * 2)) this->_dec();
         return tmp;
     }
 
-    bool remove(const T& key) {
+    void remove(const T& key) {
         for(size_t i = 0; i < length; ++i) {
             if(data[i] == key) {
                 for(size_t j = i; j < length - 1; ++j) {
                     data[j] = std::move(data[j+1]);
                 }
                 length--;
-                if(length < capacity / resize_factor) this->_dec();
-                return true;
+                if(length < capacity / (resize_factor * 2)) this->_dec();
+                return;
             }
         }
-        return false;
+        throw KeyError();
+    }
+
+    int find(const T& key) {
+        for(size_t i = 0; i < length; ++i) {
+            if(data[i] == key) return i;
+        }
+        throw KeyError();
+    }
+    int rfind(const T& key) {
+        for(int i = static_cast<int>(length)-1; i >= 0; --i) {
+            if(data[i] == key) return i;
+        }
+        throw KeyError();
     }
 
     Vector<T>& extend(const Vector<T>& right) {

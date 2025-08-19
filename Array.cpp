@@ -97,16 +97,29 @@ public:
         return tmp;
     }
 
-    bool remove(const T& key) {
+    void remove(const T& key) {
         for(size_t i = 0; i < length; ++i) {
             if(data[i] == key) {
                 for(size_t j = i; j < length - 1; ++j) {
                     data[j] = std::move(data[j+1]);
                 }
-                return true;
+                return;
             }
         }
-        return false;
+        throw KeyError();
+    }
+
+    int find(const T& key) {
+        for(size_t i = 0; i < length; ++i) {
+            if(data[i] == key) return i;
+        }
+        throw KeyError();
+    }
+    int rfind(const T& key) {
+        for(int i = static_cast<int>(length)-1; i >= 0; --i) {
+            if(data[i] == key) return i;
+        }
+        throw KeyError();
     }
 
     T& operator[](int index) {

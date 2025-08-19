@@ -181,16 +181,31 @@ public:
         return res;
     }
 
-    bool remove(const T& key) {
-        Object* ptr = head;
-        for(size_t i = 0; i < length; ++i) {
+    void remove(const T& key) {
+        Object* prev = nullptr;
+        for(Object* ptr = head; ptr != nullptr;) {
             if(ptr->data == key) {
-                this->erase(i);
-                return true;
+                if(prev) prev->next = ptr->next;
+                else head = ptr->next;
+                if(ptr == tail) tail = prev;
+                delete ptr;
+                length--;
+                return;
             }
+            prev = ptr;
             ptr = ptr->next;
         }
-        return false;
+        throw KeyError();
+    }
+
+    int find(const T& key) {
+        Object* ptr = head;
+        for(size_t i = 0; ptr != nullptr; ++i, ptr = ptr->next) {
+            if(ptr->data == key) {
+                return i;
+            }
+        }
+        throw KeyError();
     }
 
     OneLinkedList<T>& extend(const OneLinkedList<T>& right) {
@@ -220,10 +235,10 @@ public:
         return _at(index)->data;
     }
 
-    T& front() { return head->data; }
-    const T& front() const { return head->data; }
-    T& back() { return tail->data; }
-    const T& back() const { return tail->data; }
+    T& front() {if(!head) throw EmptyError(); return head->data; }
+    const T& front() const { if(!head) throw EmptyError();return head->data; }
+    T& back() { if(!tail) throw EmptyError();return tail->data; }
+    const T& back() const { if(!tail) throw EmptyError();return tail->data; }
 
     OneLinkedList<T>& operator=(const OneLinkedList<T>& right) {
         if(&right == this) return *this;

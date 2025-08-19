@@ -194,16 +194,38 @@ public:
         return res;
     }
 
-    bool remove(const T& key) {
-        Object* ptr = head;
-        for(size_t i = 0; i < length; ++i) {
+    void remove(const T& key) {
+        for(Object* ptr = head; ptr != nullptr; ptr = ptr->next) {
             if(ptr->data == key) {
-                this->erase(i);
-                return true;
+                if(ptr->prev) ptr->prev->next = ptr->next;
+                else head = ptr->next;
+                if(ptr->next) ptr->next->prev = ptr->prev;
+                else tail = ptr->prev;
+                delete ptr;
+                length--;
+                return;
             }
-            ptr = ptr->next;
         }
-        return false;
+        throw KeyError();
+    }
+
+    int find(const T& key) {
+        Object* ptr = head;
+        for(size_t i = 0; ptr != nullptr; ++i, ptr = ptr->next) {
+            if(ptr->data == key) {
+                return i;
+            }
+        }
+        throw KeyError();
+    }
+    int rfind(const T& key) {
+        Object* ptr = tail;
+        for(int i = static_cast<int>(length); ptr != nullptr; --i, ptr = ptr->prev) {
+            if(ptr->data == key) {
+                return i;
+            }
+        }
+        throw KeyError();
     }
 
     DoubleLinkedList<T>& extend(const DoubleLinkedList<T>& right) {
@@ -234,10 +256,10 @@ public:
         return _at(index)->data;
     }
 
-    T& front() { return head->data; }
-    const T& front() const { return head->data; }
-    T& back() { return tail->data; }
-    const T& back() const { return tail->data; }
+    T& front() {if(!head) throw EmptyError(); return head->data; }
+    const T& front() const { if(!head) throw EmptyError();return head->data; }
+    T& back() { if(!tail) throw EmptyError();return tail->data; }
+    const T& back() const { if(!tail) throw EmptyError();return tail->data; }
 
     DoubleLinkedList<T>& operator=(const DoubleLinkedList<T>& right) {
         if(&right == this) return *this;
